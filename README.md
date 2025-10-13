@@ -20,4 +20,4 @@ To use run the function `keychain-refresh-environment` in your
 init file.  If keychain has not been run yet when you start Emacs
 you can also later call that function interactively.
 
-[Keychain]: http://www.funtoo.org/wiki/Keychain
+[Keychain]: https://www.funtoo.org/Funtoo:Keychain
