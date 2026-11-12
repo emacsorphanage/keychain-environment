@@ -50,6 +50,24 @@
 
 ;;; Code:
 
+(require 'subr-x)
+
+(defun keychain--current-version ()
+  "Get the current keychain command version."
+  (let ((keychain-version
+         (string-trim (shell-command-to-string
+                       (concat "keychain --version 2>&1 "
+                               "| grep keychain "
+                               "| sed -E 's/.*keychain ([0-9.]+).*/\\1/'")))))
+    (when (string-match-p "[[:digit:].]+" keychain-version)
+      keychain-version)))
+
+(defun keychain--support-agents ()
+  "Whether the current keychain command supports \\='--agents' option.
+keychain versions less than 2.9 are considered."
+  (when-let* ((keychain-version (keychain--current-version)))
+    (version< keychain-version "2.9")))
+
 ;;;###autoload
 (defun keychain-refresh-environment ()
   "Set ssh-agent and gpg-agent environment variables.
@@ -58,7 +76,14 @@ Set the environment variables `SSH_AUTH_SOCK', `SSH_AGENT_PID'
 and `GPG_AGENT' in Emacs' `process-environment' according to
 information retrieved from files created by the keychain script."
   (interactive)
-  (let ((env (shell-command-to-string "keychain -q --noask --eval")))
+  (let* ((command-str (string-join `("keychain"
+                                     "--quiet"
+                                     "--noask"
+                                     ,(when (keychain--support-agents)
+                                        "--agents gpg,ssh")
+                                     " --eval")
+                                   " "))
+         (env (shell-command-to-string command-str)))
     (list (and env
                (string-match "SSH_AUTH_SOCK[=\s]\"?\\([^\s;\n\"]*\\)" env)
                (setenv       "SSH_AUTH_SOCK" (match-string 1 env)))
